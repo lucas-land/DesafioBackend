@@ -136,13 +136,13 @@ As demais rotas de escrita de disciplinas e turmas exigem o cabeçalho `Authoriz
 | `POST` | `/disciplinas` | Admin |
 | `PUT` | `/disciplinas/:id` | Admin |
 | `DELETE` | `/disciplinas/:id` | Admin |
-| `GET` | `/turmas` | Leitura |
-| `POST` | `/turmas` | Admin |
-| `PUT` | `/turmas/:id` | Admin |
+| `GET` | `/turmas` | Leitura. Cada turma traz `disciplinaId`, `professorId`, `disciplinaNome`, `disciplinaCodigo`, `professorNome` e `vagasOcupadas`, além de dia, turno e limite. |
+| `POST` | `/turmas` | Admin. A resposta usa o mesmo formato do GET. |
+| `PUT` | `/turmas/:id` | Admin. A resposta usa o mesmo formato do GET. |
 | `DELETE` | `/turmas/:id` | Admin |
-| `GET` | `/professors` | Leitura |
-| `GET` | `/matriculas` | Leitura |
-| `POST` | `/matriculas` | Corpo: `alunoId` (UUID do usuário) e `turmaId` |
+| `GET` | `/professors` | Leitura. Catálogo para o formulário de turma. |
+| `GET` | `/matriculas` | Leitura. Cada matrícula traz `alunoId`, `turmaId`, `disciplinaNome`, `professorNome`, `diaSemana` e `turno`. |
+| `POST` | `/matriculas` | Corpo: `alunoId` (UUID do usuário) e `turmaId`. A resposta usa o mesmo formato do GET. |
 | `DELETE` | `/matriculas/:id` | Remove a matrícula |
 
 Dias aceitos em turma: `Segunda-feira`, `Terça-feira`, `Quarta-feira`, `Quinta-feira`, `Sexta-feira`. Turnos: `Manhã`, `Tarde`, `Noite`.

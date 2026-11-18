@@ -12,27 +12,9 @@ import { useAuth } from '../../contexts/AuthContext'
 import { CloseIcon } from '../../components/Icons'
 import { api } from '../../services/api'
 
-function buildMatriculasWithDetails(matriculas, turmas, disciplinas, professors) {
-  return matriculas.map((m) => {
-    const turma = turmas.find((t) => String(t.id) === String(m.turmaId))
-    const disciplina = turma ? disciplinas.find((d) => String(d.id) === String(turma.disciplinaId)) : null
-    const professor = turma ? professors.find((p) => String(p.id) === String(turma.professorId)) : null
-    return {
-      ...m,
-      disciplinaNome: disciplina?.nome ?? '',
-      professorNome: professor?.nome ?? '',
-      diaSemana: turma?.diaSemana ?? '',
-      turno: turma?.turno ?? '',
-    }
-  })
-}
-
 export default function AlunoMinhasMatriculas() {
   const { user } = useAuth()
   const [matriculas, setMatriculas] = useState([])
-  const [turmas, setTurmas] = useState([])
-  const [disciplinas, setDisciplinas] = useState([])
-  const [professors, setProfessors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [cancelConfirm, setCancelConfirm] = useState(null)
@@ -41,7 +23,6 @@ export default function AlunoMinhasMatriculas() {
 
   const alunoId = user?.id != null ? String(user.id) : null
   const myMatriculas = matriculas.filter((m) => String(m.alunoId) === alunoId)
-  const myMatriculasWithDetails = buildMatriculasWithDetails(myMatriculas, turmas, disciplinas, professors)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -49,23 +30,12 @@ export default function AlunoMinhasMatriculas() {
     async function load() {
       try {
         setError(null)
-        const [matriculasData, turmasData, disciplinasData, professorsData] = await Promise.all([
-          api('/matriculas', { signal }),
-          api('/turmas', { signal }),
-          api('/disciplinas', { signal }),
-          api('/professors', { signal }),
-        ])
+        const matriculasData = await api('/matriculas', { signal })
         setMatriculas(Array.isArray(matriculasData) ? matriculasData : [])
-        setTurmas(Array.isArray(turmasData) ? turmasData : [])
-        setDisciplinas(Array.isArray(disciplinasData) ? disciplinasData : [])
-        setProfessors(Array.isArray(professorsData) ? professorsData : [])
       } catch (err) {
         if (err.name === 'AbortError') return
         setError(err.message || 'Erro ao conectar. Verifique se o servidor está rodando.')
         setMatriculas([])
-        setTurmas([])
-        setDisciplinas([])
-        setProfessors([])
       } finally {
         if (!signal.aborted) setLoading(false)
       }
@@ -103,7 +73,7 @@ export default function AlunoMinhasMatriculas() {
       <Card>
         <Flex direction="column" gap="4" p="4">
           <Text size="3" weight="bold">
-            {myMatriculasWithDetails.length} matrículas ativas
+            {myMatriculas.length} matrículas ativas
           </Text>
           {error && (
             <Text size="2" color="red">
@@ -126,7 +96,7 @@ export default function AlunoMinhasMatriculas() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {myMatriculasWithDetails.map((m) => (
+                {myMatriculas.map((m) => (
                   <Table.Row key={m.id}>
                     <Table.Cell>{m.disciplinaNome}</Table.Cell>
                     <Table.Cell>{m.professorNome}</Table.Cell>

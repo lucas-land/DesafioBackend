@@ -11,7 +11,22 @@ type MatriculaBanco = RowDataPacket & {
   id: number;
   alunoId: string;
   turmaId: number;
+  disciplinaNome: string;
+  professorNome: string;
+  diaSemana: string;
+  turno: string;
 };
+
+const SELECT_MATRICULA = `
+  SELECT m.id, m.alunoId, m.turmaId,
+         t.diaSemana, t.turno,
+         d.nome AS disciplinaNome,
+         p.nome AS professorNome
+  FROM matriculas m
+  INNER JOIN turmas t ON t.id = m.turmaId
+  INNER JOIN disciplinas d ON d.id = t.disciplinaId
+  INNER JOIN professors p ON p.id = t.professorId
+`;
 
 type TurmaMatriculaBanco = RowDataPacket & {
   id: number;
@@ -37,14 +52,17 @@ export class MatriculasService {
       id: linha.id,
       alunoId: linha.alunoId,
       turmaId: linha.turmaId,
+      disciplinaNome: linha.disciplinaNome,
+      professorNome: linha.professorNome,
+      diaSemana: linha.diaSemana,
+      turno: linha.turno,
     };
   }
 
   async listar() {
     const linhas = await this.banco.executar<MatriculaBanco[]>(
-      `SELECT id, alunoId, turmaId
-       FROM matriculas
-       ORDER BY id`,
+      `${SELECT_MATRICULA}
+       ORDER BY m.id`,
     );
     return linhas.map((linha) => this.paraResposta(linha));
   }
@@ -52,8 +70,8 @@ export class MatriculasService {
   async criar(dados: CriarMatriculaDto) {
     const turma = await this.buscarTurma(dados.turmaId);
 
-    const duplicada = await this.banco.executar<MatriculaBanco[]>(
-      `SELECT id, alunoId, turmaId
+    const duplicada = await this.banco.executar<ConflitoBanco[]>(
+      `SELECT id
        FROM matriculas
        WHERE alunoId = ? AND turmaId = ?`,
       [dados.alunoId, dados.turmaId],
@@ -110,9 +128,8 @@ export class MatriculasService {
 
   private async buscarPorId(id: number) {
     const linhas = await this.banco.executar<MatriculaBanco[]>(
-      `SELECT id, alunoId, turmaId
-       FROM matriculas
-       WHERE id = ?`,
+      `${SELECT_MATRICULA}
+       WHERE m.id = ?`,
       [id],
     );
     const linha = linhas[0];

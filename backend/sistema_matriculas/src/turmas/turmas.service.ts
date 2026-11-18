@@ -15,7 +15,21 @@ type TurmaBanco = RowDataPacket & {
   diaSemana: string;
   turno: string;
   limiteVagas: number;
+  disciplinaNome: string;
+  disciplinaCodigo: string;
+  professorNome: string;
+  vagasOcupadas: number;
 };
+
+const SELECT_TURMA = `
+  SELECT t.id, t.disciplinaId, t.professorId, t.diaSemana, t.turno, t.limiteVagas,
+         d.nome AS disciplinaNome, d.codigo AS disciplinaCodigo,
+         p.nome AS professorNome,
+         (SELECT COUNT(*) FROM matriculas m WHERE m.turmaId = t.id) AS vagasOcupadas
+  FROM turmas t
+  INNER JOIN disciplinas d ON d.id = t.disciplinaId
+  INNER JOIN professors p ON p.id = t.professorId
+`;
 
 type ContagemBanco = RowDataPacket & {
   total: number;
@@ -37,14 +51,17 @@ export class TurmasService {
       diaSemana: linha.diaSemana,
       turno: linha.turno,
       limiteVagas: linha.limiteVagas,
+      disciplinaNome: linha.disciplinaNome,
+      disciplinaCodigo: linha.disciplinaCodigo,
+      professorNome: linha.professorNome,
+      vagasOcupadas: Number(linha.vagasOcupadas),
     };
   }
 
   async listar() {
     const linhas = await this.banco.executar<TurmaBanco[]>(
-      `SELECT id, disciplinaId, professorId, diaSemana, turno, limiteVagas
-       FROM turmas
-       ORDER BY id`,
+      `${SELECT_TURMA}
+       ORDER BY t.id`,
     );
     return linhas.map((linha) => this.paraResposta(linha));
   }
@@ -126,9 +143,8 @@ export class TurmasService {
 
   private async buscarPorId(id: number) {
     const linhas = await this.banco.executar<TurmaBanco[]>(
-      `SELECT id, disciplinaId, professorId, diaSemana, turno, limiteVagas
-       FROM turmas
-       WHERE id = ?`,
+      `${SELECT_TURMA}
+       WHERE t.id = ?`,
       [id],
     );
     const linha = linhas[0];

@@ -5,26 +5,9 @@ import { Toast, ToastError } from '../../components/Toast'
 import { UsersIcon, CheckIcon } from '../../components/Icons'
 import { api } from '../../services/api'
 
-function buildTurmasWithDetails(turmas, disciplinas, professors, matriculas) {
-  return turmas.map((t) => {
-    const disciplina = disciplinas.find((d) => String(d.id) === String(t.disciplinaId))
-    const professor = professors.find((p) => String(p.id) === String(t.professorId))
-    const vagasOcupadas = matriculas.filter((m) => String(m.turmaId) === String(t.id)).length
-    return {
-      ...t,
-      codigo: disciplina?.codigo ?? '',
-      disciplinaNome: disciplina?.nome ?? '',
-      professorNome: professor?.nome ?? '',
-      vagasOcupadas,
-    }
-  })
-}
-
 export default function AlunoTurmasDisponiveis() {
   const { user } = useAuth()
   const [turmas, setTurmas] = useState([])
-  const [disciplinas, setDisciplinas] = useState([])
-  const [professors, setProfessors] = useState([])
   const [matriculas, setMatriculas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -32,7 +15,6 @@ export default function AlunoTurmasDisponiveis() {
   const [toast, setToast] = useState(null)
   const [toastError, setToastError] = useState(null)
 
-  const turmasWithDetails = buildTurmasWithDetails(turmas, disciplinas, professors, matriculas)
   const alunoId = user?.id != null ? String(user.id) : null
   const myMatriculas = matriculas.filter((m) => String(m.alunoId) === alunoId)
 
@@ -42,22 +24,16 @@ export default function AlunoTurmasDisponiveis() {
     async function load() {
       try {
         setError(null)
-        const [turmasData, disciplinasData, professorsData, matriculasData] = await Promise.all([
+        const [turmasData, matriculasData] = await Promise.all([
           api('/turmas', { signal }),
-          api('/disciplinas', { signal }),
-          api('/professors', { signal }),
           api('/matriculas', { signal }),
         ])
         setTurmas(Array.isArray(turmasData) ? turmasData : [])
-        setDisciplinas(Array.isArray(disciplinasData) ? disciplinasData : [])
-        setProfessors(Array.isArray(professorsData) ? professorsData : [])
         setMatriculas(Array.isArray(matriculasData) ? matriculasData : [])
       } catch (err) {
         if (err.name === 'AbortError') return
         setError(err.message || 'Erro ao conectar. Verifique se o servidor está rodando.')
         setTurmas([])
-        setDisciplinas([])
-        setProfessors([])
         setMatriculas([])
       } finally {
         if (!signal.aborted) setLoading(false)
@@ -79,11 +55,10 @@ export default function AlunoTurmasDisponiveis() {
     return myMatriculas.some((m) => String(m.turmaId) === String(turmaId))
   }
 
-  function hasConflitoHorario(turma, turmasList) {
-    return myMatriculas.some((m) => {
-      const outraTurma = turmasList.find((t) => String(t.id) === String(m.turmaId))
-      return outraTurma && outraTurma.diaSemana === turma.diaSemana && outraTurma.turno === turma.turno
-    })
+  function hasConflitoHorario(turma) {
+    return myMatriculas.some(
+      (m) => m.diaSemana === turma.diaSemana && m.turno === turma.turno,
+    )
   }
 
   async function handleMatricular(turma) {
@@ -95,7 +70,7 @@ export default function AlunoTurmasDisponiveis() {
       setToastError('Não há vagas disponíveis nesta turma.')
       return
     }
-    if (hasConflitoHorario(turma, turmasWithDetails)) {
+    if (hasConflitoHorario(turma)) {
       setToastError('Conflito de horário com outra matrícula.')
       return
     }
@@ -110,6 +85,13 @@ export default function AlunoTurmasDisponiveis() {
         },
       })
       setMatriculas((prev) => [...prev, created])
+      setTurmas((prev) =>
+        prev.map((t) =>
+          String(t.id) === String(turma.id)
+            ? { ...t, vagasOcupadas: Number(t.vagasOcupadas) + 1 }
+            : t,
+        ),
+      )
       setToast('Matrícula realizada com sucesso!')
     } catch (err) {
       setToastError(err.message || 'Erro ao realizar matrícula. Tente novamente.')
@@ -140,7 +122,7 @@ export default function AlunoTurmasDisponiveis() {
         </Text>
       ) : (
       <Grid columns={{ initial: '1', sm: '2', md: '3' }} gap="4">
-        {turmasWithDetails.map((t) => {
+        {turmas.map((t) => {
           const lotada = isLotada(t)
           const matriculado = isMatriculado(t.id)
           const vagas = vagasDisponiveis(t)
@@ -171,7 +153,7 @@ export default function AlunoTurmasDisponiveis() {
                     {t.disciplinaNome}
                   </Text>
                   <Text size="2" color="gray">
-                    {t.codigo}
+                    {t.disciplinaCodigo}
                   </Text>
                 </Flex>
                 <Flex direction="column" gap="1">

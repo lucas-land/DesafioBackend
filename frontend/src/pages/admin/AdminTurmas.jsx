@@ -28,25 +28,10 @@ const DIAS_SEMANA = [
 
 const TURNO_OPCOES = ['Manhã', 'Tarde', 'Noite']
 
-function buildTurmasWithDetails(turmas, disciplinas, professors, matriculas) {
-  return turmas.map((t) => {
-    const disciplina = disciplinas.find((d) => String(d.id) === String(t.disciplinaId))
-    const professor = professors.find((p) => String(p.id) === String(t.professorId))
-    const vagasOcupadas = matriculas.filter((m) => String(m.turmaId) === String(t.id)).length
-    return {
-      ...t,
-      disciplinaNome: disciplina?.nome ?? '',
-      professorNome: professor?.nome ?? '',
-      vagasOcupadas,
-    }
-  })
-}
-
 export default function AdminTurmas() {
   const [turmas, setTurmas] = useState([])
   const [disciplinas, setDisciplinas] = useState([])
   const [professors, setProfessors] = useState([])
-  const [matriculas, setMatriculas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -66,31 +51,26 @@ export default function AdminTurmas() {
   const [toast, setToast] = useState(null)
   const [toastError, setToastError] = useState(null)
 
-  const turmasWithDetails = buildTurmasWithDetails(turmas, disciplinas, professors, matriculas)
-
   useEffect(() => {
     const controller = new AbortController()
     const signal = controller.signal
     async function load() {
       try {
         setError(null)
-        const [turmasData, disciplinasData, professorsData, matriculasData] = await Promise.all([
+        const [turmasData, disciplinasData, professorsData] = await Promise.all([
           api('/turmas', { signal }),
           api('/disciplinas', { signal }),
           api('/professors', { signal }),
-          api('/matriculas', { signal }),
         ])
         setTurmas(Array.isArray(turmasData) ? turmasData : [])
         setDisciplinas(Array.isArray(disciplinasData) ? disciplinasData : [])
         setProfessors(Array.isArray(professorsData) ? professorsData : [])
-        setMatriculas(Array.isArray(matriculasData) ? matriculasData : [])
       } catch (err) {
         if (err.name === 'AbortError') return
         setError(err.message || 'Erro ao conectar. Verifique se o servidor está rodando.')
         setTurmas([])
         setDisciplinas([])
         setProfessors([])
-        setMatriculas([])
       } finally {
         if (!signal.aborted) setLoading(false)
       }
@@ -257,7 +237,7 @@ export default function AdminTurmas() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {turmasWithDetails.map((t) => (
+                {turmas.map((t) => (
                   <Table.Row key={t.id}>
                     <Table.Cell>{t.disciplinaNome}</Table.Cell>
                     <Table.Cell>{t.professorNome}</Table.Cell>
