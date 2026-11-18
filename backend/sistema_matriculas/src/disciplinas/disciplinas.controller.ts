@@ -23,6 +23,7 @@ export class DisciplinasController {
   constructor(private readonly disciplinas: DisciplinasService) {}
 
   @Get()
+  @UseGuards(AutenticacaoGuard)
   listar() {
     return this.disciplinas.listar();
   }

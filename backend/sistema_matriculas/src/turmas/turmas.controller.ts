@@ -23,6 +23,7 @@ export class TurmasController {
   constructor(private readonly turmas: TurmasService) {}
 
   @Get()
+  @UseGuards(AutenticacaoGuard)
   listar() {
     return this.turmas.listar();
   }

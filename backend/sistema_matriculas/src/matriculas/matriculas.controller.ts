@@ -8,7 +8,9 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AutenticacaoGuard } from '../auth/guards/autenticacao.guard';
 import { CriarMatriculaDto } from './dto/criar-matricula.dto';
 import { MatriculasService } from './matriculas.service';
 
@@ -17,6 +19,7 @@ export class MatriculasController {
   constructor(private readonly matriculas: MatriculasService) {}
 
   @Get()
+  @UseGuards(AutenticacaoGuard)
   listar() {
     return this.matriculas.listar();
   }
